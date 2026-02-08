@@ -118,12 +118,12 @@ Rewrite README for the student exercise context. Include application reference i
 
 ### Task 6: Verify build and unit tests
 
-- [ ] verify `make test` passes (unit tests)
-- [ ] verify `make build` succeeds (binary builds)
-- [ ] verify `make build-container` succeeds (Docker image)
-- [ ] verify `make run` starts the application and responds on `localhost:9898/healthz`
-- [ ] verify `make build-charts` works (Helm lint on reference chart)
-- [ ] verify no broken references to deleted files/directories
+- [x] verify `make test` passes (unit tests)
+- [x] verify `make build` succeeds (binary builds)
+- [x] verify `make build-container` succeeds (Docker image)
+- [x] verify `make run` starts the application and responds on `localhost:9898/healthz`
+- [x] verify `make build-charts` works (Helm lint on reference chart)
+- [x] verify no broken references to deleted files/directories
 
 ### Task 7: Integration test — Helm vs manifests deployment comparison
 
