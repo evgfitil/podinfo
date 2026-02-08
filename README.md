@@ -1,10 +1,8 @@
-# podinfo - Helm Chart Exercise
+# Podinfo
 
-## Exercise Goal
+Podinfo is a tiny web application made with Go that showcases best practices of running microservices in Kubernetes.
 
-You have a working Go microservice (podinfo) deployed to Kubernetes using plain YAML manifests. Your task is to create a production-quality Helm chart that templatizes these manifests, making the deployment configurable and reusable.
-
-The `manifests/` directory contains all the Kubernetes resources you need to convert into Helm templates. Use the application reference below to decide which values should be parameterized in your chart.
+Podinfo is used by CNCF projects like [Flux](https://github.com/fluxcd/flux2) and [Flagger](https://github.com/fluxcd/flagger) for end-to-end testing and workshops.
 
 Container image: `ghcr.io/stefanprodan/podinfo:6.10.1`
 
@@ -84,30 +82,23 @@ Served on port 9999:
 - `/grpc.EnvService/Env` -- environment variables
 - `/grpc.InfoService/Info` -- runtime information
 
-## Project Structure
-
-```text
-manifests/         Plain Kubernetes manifests (your starting point)
-charts/podinfo/    Reference Helm chart (for mentors)
-```
-
 ## Kubernetes Manifests
 
-The `manifests/` directory contains plain YAML files for all resources you need to templatize:
+The `manifests/` directory contains plain YAML files for deploying podinfo and Redis:
 
-| File | Resource | What to Parameterize |
-|------|----------|---------------------|
+| File | Resource | Key Configuration |
+|------|----------|-------------------|
 | `deployment.yaml` | Deployment | image, replicas, resources, probes, env vars, ports |
 | `service.yaml` | Service | port names and numbers, selector labels |
-| `hpa.yaml` | HorizontalPodAutoscaler | min/max replicas, CPU target, enable/disable |
-| `ingress.yaml` | Ingress | host, paths, TLS, enable/disable |
-| `serviceaccount.yaml` | ServiceAccount | name, annotations, enable/disable |
-| `pdb.yaml` | PodDisruptionBudget | minAvailable/maxUnavailable, enable/disable |
+| `hpa.yaml` | HorizontalPodAutoscaler | min/max replicas, CPU target |
+| `ingress.yaml` | Ingress | host, paths, TLS |
+| `serviceaccount.yaml` | ServiceAccount | name, annotations |
+| `pdb.yaml` | PodDisruptionBudget | minAvailable/maxUnavailable |
 | `redis-config.yaml` | ConfigMap | Redis configuration (maxmemory, eviction policy) |
-| `redis-deployment.yaml` | Deployment | image, resources, probes, enable/disable |
+| `redis-deployment.yaml` | Deployment | image, resources, probes |
 | `redis-service.yaml` | Service | port, selector labels |
 
-Apply manifests directly to verify they work:
+Deploy with plain manifests:
 
 ```bash
 kubectl apply -f manifests/
@@ -129,12 +120,6 @@ The podinfo Deployment connects to Redis via the `--cache-server` flag:
 
 This flag can also be set through the `PODINFO_CACHE_SERVER` environment variable. When Redis is available, the `/cache/{key}` API endpoints (GET, POST, DELETE) become functional.
 
-When creating your Helm chart, consider making Redis an optional dependency that can be enabled or disabled through chart values.
-
-## Reference Helm Chart
-
-The `charts/podinfo/` directory contains a full production Helm chart. This is provided as a reference for mentors and should not be modified during the exercise.
-
 ## Quick Start
 
 Deploy to a Kubernetes cluster:
@@ -144,11 +129,4 @@ kubectl create namespace podinfo
 kubectl apply -f manifests/ -n podinfo
 kubectl port-forward -n podinfo svc/podinfo 9898:9898
 # Open http://localhost:9898
-```
-
-Validate your Helm chart:
-
-```bash
-helm lint charts/your-chart/
-helm template charts/your-chart/
 ```
