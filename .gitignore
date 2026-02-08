@@ -29,3 +29,6 @@ progress*.txt
 
 # local kubeconfig for integration tests
 kubeconfig
+
+# Claude Code local settings
+.claude/

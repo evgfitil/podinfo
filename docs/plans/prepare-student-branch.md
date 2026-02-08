@@ -222,7 +222,7 @@ All kubectl and helm commands below assume this env var is set.
 
 ### Task 8: Commit all changes
 
-- [ ] commit all changes to `student-exercise` branch
+- [x] commit all changes to `student-exercise` branch
 
 **ralphex: this is the last automated task. Stop execution after this task is complete.**
 
