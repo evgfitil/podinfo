@@ -6,6 +6,8 @@ You have a working Go microservice (podinfo) deployed to Kubernetes using plain 
 
 The `manifests/` directory contains all the Kubernetes resources you need to convert into Helm templates. Use the application reference below to decide which values should be parameterized in your chart.
 
+Container image: `ghcr.io/stefanprodan/podinfo:6.10.1`
+
 ## Application Reference
 
 ### Ports
@@ -85,14 +87,8 @@ Served on port 9999:
 ## Project Structure
 
 ```text
-cmd/podinfo/       Application entrypoint
-cmd/podcli/        CLI client (used in health checks)
-pkg/               Application packages (API, version, signals, fscache)
-ui/                Web UI (vue.html)
 manifests/         Plain Kubernetes manifests (your starting point)
 charts/podinfo/    Reference Helm chart (for mentors)
-Dockerfile         Container image build
-Makefile           Build and test commands
 ```
 
 ## Kubernetes Manifests
@@ -139,37 +135,20 @@ When creating your Helm chart, consider making Redis an optional dependency that
 
 The `charts/podinfo/` directory contains a full production Helm chart. This is provided as a reference for mentors and should not be modified during the exercise.
 
-## Makefile Targets
-
-| Target | Description |
-|--------|-------------|
-| `make run` | Run the application locally (HTTP on :9898, gRPC on :9999) |
-| `make test` | Run unit tests with coverage |
-| `make build` | Build `podinfo` and `podcli` binaries |
-| `make tidy` | Clean and update Go module dependencies |
-| `make vet` | Run `go vet` on all packages |
-| `make fmt` | Format Go source code |
-| `make build-charts` | Lint and package Helm charts |
-| `make build-container` | Build Docker container image |
-
 ## Quick Start
 
-Build and run locally:
+Deploy to a Kubernetes cluster:
 
 ```bash
-make build
-make run
+kubectl create namespace podinfo
+kubectl apply -f manifests/ -n podinfo
+kubectl port-forward -n podinfo svc/podinfo 9898:9898
 # Open http://localhost:9898
 ```
 
-Run tests:
+Validate your Helm chart:
 
 ```bash
-make test
-```
-
-Build container image:
-
-```bash
-make build-container
+helm lint charts/your-chart/
+helm template charts/your-chart/
 ```
