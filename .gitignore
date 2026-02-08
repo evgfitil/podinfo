@@ -28,3 +28,6 @@ cue/go.sum
 .notation/podinfo.key
 docs/
 CLAUDE.md
+
+# ralphex progress logs
+progress*.txt

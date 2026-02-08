@@ -62,13 +62,13 @@ The result is a self-contained repository branch where:
 
 ### Task 2: Remove unnecessary root files
 
-- [ ] remove `Dockerfile.base` (base image build)
-- [ ] remove `Dockerfile.xx` (cross-platform buildx)
-- [ ] remove `.goreleaser.yml` (release automation for podcli)
-- [ ] remove `cloudbuild.yaml` (GCP Cloud Build pipeline)
-- [ ] remove `CLAUDE.md` (project-specific Claude instructions)
-- [ ] verify: `make build` succeeds
-- [ ] verify: `make build-container` succeeds
+- [x] remove `Dockerfile.base` (base image build)
+- [x] remove `Dockerfile.xx` (cross-platform buildx)
+- [x] remove `.goreleaser.yml` (release automation for podcli)
+- [x] remove `cloudbuild.yaml` (GCP Cloud Build pipeline)
+- [x] remove `CLAUDE.md` (project-specific Claude instructions)
+- [x] verify: `make build` succeeds
+- [x] verify: `make build-container` succeeds
 
 ### Task 3: Simplify Makefile
 
