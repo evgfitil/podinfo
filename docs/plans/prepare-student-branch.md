@@ -82,16 +82,16 @@ Remove targets that reference deleted components or are irrelevant for the exerc
 
 Replace bare-bones `kustomize/` with a complete `manifests/` directory containing all resource types students must templatize.
 
-- [ ] run `helm template` on `charts/podinfo/` with Ingress, HPA, ServiceAccount, PDB enabled to generate rendered manifests
-- [ ] create `manifests/` directory with individual plain YAML files, cleaned of Helm-specific labels/annotations:
+- [x] run `helm template` on `charts/podinfo/` with Ingress, HPA, ServiceAccount, PDB enabled to generate rendered manifests
+- [x] create `manifests/` directory with individual plain YAML files, cleaned of Helm-specific labels/annotations:
   - `deployment.yaml` — with probes, resources, securityContext, volumes, all ports
   - `service.yaml` — with named ports (http, grpc, metrics)
   - `hpa.yaml` — with CPU metric
   - `ingress.yaml` — basic Ingress resource
   - `serviceaccount.yaml` — ServiceAccount
   - `pdb.yaml` — PodDisruptionBudget
-- [ ] remove `kustomize/` directory (replaced by `manifests/`)
-- [ ] verify manifests are valid: `kubectl apply --dry-run=client -f manifests/`
+- [x] remove `kustomize/` directory (replaced by `manifests/`)
+- [x] verify manifests are valid: `kubectl apply --dry-run=client -f manifests/`
 
 ### Task 5: Update README.md
 

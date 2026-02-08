@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+  labels:
+    app: podinfo
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: podinfo
+  template:
+    metadata:
+      labels:
+        app: podinfo
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9898"
+    spec:
+      terminationGracePeriodSeconds: 30
+      serviceAccountName: podinfo
+      containers:
+        - name: podinfo
+          image: "ghcr.io/stefanprodan/podinfo:6.10.1"
+          imagePullPolicy: IfNotPresent
+          command:
+            - ./podinfo
+            - --port=9898
+            - --cert-path=/data/cert
+            - --port-metrics=9797
+            - --grpc-port=9999
+            - --grpc-service-name=podinfo
+            - --level=info
+            - --random-delay=false
+            - --random-error=false
+          env:
+            - name: PODINFO_UI_COLOR
+              value: "#34577c"
+          ports:
+            - name: http
+              containerPort: 9898
+              protocol: TCP
+            - name: http-metrics
+              containerPort: 9797
+              protocol: TCP
+            - name: grpc
+              containerPort: 9999
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - podcli
+                - check
+                - http
+                - localhost:9898/healthz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - podcli
+                - check
+                - http
+                - localhost:9898/readyz
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 1m
+              memory: 16Mi
+      volumes:
+        - name: data
+          emptyDir: {}
