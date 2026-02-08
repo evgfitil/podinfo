@@ -1,212 +1,154 @@
-# podinfo
+# podinfo - Helm Chart Exercise
 
-[![e2e](https://github.com/stefanprodan/podinfo/workflows/e2e/badge.svg)](https://github.com/stefanprodan/podinfo/blob/master/.github/workflows/e2e.yml)
-[![test](https://github.com/stefanprodan/podinfo/workflows/test/badge.svg)](https://github.com/stefanprodan/podinfo/blob/master/.github/workflows/test.yml)
-[![cve-scan](https://github.com/stefanprodan/podinfo/workflows/cve-scan/badge.svg)](https://github.com/stefanprodan/podinfo/blob/master/.github/workflows/cve-scan.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/stefanprodan/podinfo)](https://goreportcard.com/report/github.com/stefanprodan/podinfo)
-[![Docker Pulls](https://img.shields.io/docker/pulls/stefanprodan/podinfo)](https://hub.docker.com/r/stefanprodan/podinfo)
+## Exercise Goal
 
-Podinfo is a tiny web application made with Go that showcases best practices of running microservices in Kubernetes.
-Podinfo is used by CNCF projects like [Flux](https://github.com/fluxcd/flux2) and [Flagger](https://github.com/fluxcd/flagger)
-for end-to-end testing and workshops.
+You have a working Go microservice (podinfo) deployed to Kubernetes using plain YAML manifests. Your task is to create a production-quality Helm chart that templatizes these manifests, making the deployment configurable and reusable.
 
-Specifications:
+The `manifests/` directory contains all the Kubernetes resources you need to convert into Helm templates. Use the application reference below to decide which values should be parameterized in your chart.
 
-* Health checks (readiness and liveness)
-* Graceful shutdown on interrupt signals
-* File watcher for secrets and configmaps
-* Instrumented with Prometheus and Open Telemetry
-* Structured logging with zap 
-* 12-factor app with viper
-* Fault injection (random errors and latency)
-* Swagger docs
-* Timoni, Helm and Kustomize installers
-* End-to-End testing with Kubernetes Kind and Helm
-* Multi-arch container image with Docker buildx and GitHub Actions
-* Container image signing with Sigstore cosign
-* SBOMs and SLSA Provenance embedded in the container image
-* CVE scanning with govulncheck
+## Application Reference
 
-Web API:
+### Ports
 
-* `GET /` prints runtime information
-* `GET /version` prints podinfo version and git commit hash 
-* `GET /metrics` return HTTP requests duration and Go runtime metrics
-* `GET /healthz` used by Kubernetes liveness probe
-* `GET /readyz` used by Kubernetes readiness probe
-* `POST /readyz/enable` signals the Kubernetes LB that this instance is ready to receive traffic
-* `POST /readyz/disable` signals the Kubernetes LB to stop sending requests to this instance
-* `GET /status/{code}` returns the status code
-* `GET /panic` crashes the process with exit code 255
-* `POST /echo` forwards the call to the backend service and echos the posted content 
-* `GET /env` returns the environment variables as a JSON array
-* `GET /headers` returns a JSON with the request HTTP headers
-* `GET /delay/{seconds}` waits for the specified period
-* `POST /token` issues a JWT token valid for one minute `JWT=$(curl -sd 'anon' podinfo:9898/token | jq -r .token)`
-* `GET /token/validate` validates the JWT token `curl -H "Authorization: Bearer $JWT" podinfo:9898/token/validate`
-* `GET /configs` returns a JSON with configmaps and/or secrets mounted in the `config` volume
-* `POST/PUT /cache/{key}` saves the posted content to Redis
-* `GET /cache/{key}` returns the content from Redis if the key exists
-* `DELETE /cache/{key}` deletes the key from Redis if exists
-* `POST /store` writes the posted content to disk at /data/hash and returns the SHA1 hash of the content
-* `GET /store/{hash}` returns the content of the file /data/hash if exists
-* `GET /ws/echo` echos content via websockets `podcli ws ws://localhost:9898/ws/echo`
-* `GET /chunked/{seconds}` uses `transfer-encoding` type `chunked` to give a partial response and then waits for the specified period
-* `GET /swagger.json` returns the API Swagger docs, used for Linkerd service profiling and Gloo routes discovery
+| Port | Protocol | Description |
+|------|----------|-------------|
+| 9898 | HTTP | Primary API and Web UI |
+| 9999 | gRPC | gRPC API |
+| 9797 | HTTP | Prometheus metrics (`/metrics`) |
+| 9899 | HTTPS | TLS-enabled HTTP (optional, requires cert) |
 
-gRPC API:
+### Health Probes
 
-* `/grpc.health.v1.Health/Check` health checking
-* `/grpc.EchoService/Echo` echos the received content
-* `/grpc.VersionService/Version` returns podinfo version and Git commit hash
-* `/grpc.DelayService/Delay` returns a successful response after the given seconds in the body of gRPC request
-* `/grpc.EnvService/Env` returns environment variables as a JSON array
-* `/grpc.HeaderService/Header` returns the headers present in the gRPC request. Any custom header can also be given as a part of request and that can be returned using this API
-* `/grpc.InfoService/Info` returns the runtime information
-* `/grpc.PanicService/Panic` crashes the process with gRPC status code as '1 CANCELLED'
-* `/grpc.StatusService/Status` returns the gRPC Status code given in the request body
-* `/grpc.TokenService/TokenGenerate` issues a JWT token valid for one minute
-* `/grpc.TokenService/TokenValidate` validates the JWT token
+| Probe | Endpoint | Port |
+|-------|----------|------|
+| Liveness | `/healthz` | 9898 (HTTP) |
+| Readiness | `/readyz` | 9898 (HTTP) |
 
-Web UI:
+### Environment Variables
 
-![podinfo-ui](https://raw.githubusercontent.com/stefanprodan/podinfo/gh-pages/screens/podinfo-ui-v3.png)
+All environment variables use the `PODINFO_` prefix. CLI flag names are uppercased and dashes become underscores (e.g., `--cache-server` becomes `PODINFO_CACHE_SERVER`).
 
-To access the Swagger UI open `<podinfo-host>/swagger/index.html` in a browser.
+Key variables:
 
-### Guides
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PODINFO_PORT` | `9898` | HTTP listen port |
+| `PODINFO_LEVEL` | `info` | Log level (debug, info, warn, error, fatal, panic) |
+| `PODINFO_CACHE_SERVER` | (empty) | Redis address: `tcp://<host>:<port>` |
+| `PODINFO_UI_COLOR` | `#34577c` | Web UI background color |
+| `PODINFO_UI_MESSAGE` | `greetings from podinfo v<version>` | Web UI greeting message |
+| `PODINFO_BACKEND_URL` | (empty) | Backend service URL for `/echo` endpoint |
 
-* [Getting started with Timoni](https://timoni.sh/quickstart/)
-* [Getting started with Flux](https://fluxcd.io/flux/get-started/)
-* [Progressive Deliver with Flagger and Linkerd](https://docs.flagger.app/tutorials/linkerd-progressive-delivery)
-* [Automated canary deployments with Kubernetes Gateway API](https://docs.flagger.app/tutorials/gatewayapi-progressive-delivery)
+### Volumes
 
-### Install
+| Mount Path | Type | Description |
+|------------|------|-------------|
+| `/data` | emptyDir | Application data directory |
+| `/data/cert` | Secret | TLS certificate and key (optional) |
 
-To install Podinfo on Kubernetes the minimum required version is **Kubernetes v1.23**.
+### Container
 
-#### Timoni
+- Base image: `alpine:3.23`
+- Runs as non-root user `app`
+- Binary path: `/podinfo`
 
-Install with [Timoni](https://timoni.sh):
+### Web API
+
+- `GET /` -- runtime information (JSON)
+- `GET /version` -- version and git commit hash
+- `GET /metrics` -- Prometheus metrics
+- `GET /healthz` -- liveness probe endpoint
+- `GET /readyz` -- readiness probe endpoint
+- `POST /readyz/enable` -- mark instance ready
+- `POST /readyz/disable` -- mark instance not ready
+- `GET /env` -- environment variables (JSON)
+- `GET /headers` -- request headers (JSON)
+- `GET /delay/{seconds}` -- artificial latency
+- `GET /status/{code}` -- return specific HTTP status code
+- `GET /panic` -- crash the process (exit 255)
+- `POST /echo` -- forward to backend and echo content
+- `POST /cache/{key}` -- store value in Redis
+- `GET /cache/{key}` -- retrieve value from Redis
+- `DELETE /cache/{key}` -- delete key from Redis
+
+### gRPC API
+
+Served on port 9999:
+
+- `/grpc.health.v1.Health/Check` -- health checking
+- `/grpc.EchoService/Echo` -- echo content
+- `/grpc.VersionService/Version` -- version info
+- `/grpc.DelayService/Delay` -- artificial latency
+- `/grpc.EnvService/Env` -- environment variables
+- `/grpc.InfoService/Info` -- runtime information
+
+## Project Structure
+
+```text
+cmd/podinfo/       Application entrypoint
+cmd/podcli/        CLI client (used in health checks)
+pkg/               Application packages (API, version, signals, fscache)
+ui/                Web UI (vue.html)
+manifests/         Plain Kubernetes manifests (your starting point)
+charts/podinfo/    Reference Helm chart (for mentors)
+Dockerfile         Container image build
+Makefile           Build and test commands
+```
+
+## Kubernetes Manifests
+
+The `manifests/` directory contains plain YAML files for all resources you need to templatize:
+
+| File | Resource | What to Parameterize |
+|------|----------|---------------------|
+| `deployment.yaml` | Deployment | image, replicas, resources, probes, env vars, ports |
+| `service.yaml` | Service | port names and numbers, selector labels |
+| `hpa.yaml` | HorizontalPodAutoscaler | min/max replicas, CPU target, enable/disable |
+| `ingress.yaml` | Ingress | host, paths, TLS, enable/disable |
+| `serviceaccount.yaml` | ServiceAccount | name, annotations, enable/disable |
+| `pdb.yaml` | PodDisruptionBudget | minAvailable/maxUnavailable, enable/disable |
+
+Apply manifests directly to verify they work:
 
 ```bash
-timoni -n default apply podinfo oci://ghcr.io/stefanprodan/modules/podinfo
+kubectl apply -f manifests/
 ```
 
-#### Helm
+## Reference Helm Chart
 
-Install from github.io:
+The `charts/podinfo/` directory contains a full production Helm chart. This is provided as a reference for mentors and should not be modified during the exercise.
+
+## Makefile Targets
+
+| Target | Description |
+|--------|-------------|
+| `make run` | Run the application locally (HTTP on :9898, gRPC on :9999) |
+| `make test` | Run unit tests with coverage |
+| `make build` | Build `podinfo` and `podcli` binaries |
+| `make tidy` | Clean and update Go module dependencies |
+| `make vet` | Run `go vet` on all packages |
+| `make fmt` | Format Go source code |
+| `make build-charts` | Lint and package Helm charts |
+| `make build-container` | Build Docker container image |
+
+## Quick Start
+
+Build and run locally:
 
 ```bash
-helm repo add podinfo https://stefanprodan.github.io/podinfo
-
-helm upgrade --install --wait frontend \
---namespace test \
---set replicaCount=2 \
---set backend=http://backend-podinfo:9898/echo \
-podinfo/podinfo
-
-helm test frontend --namespace test
-
-helm upgrade --install --wait backend \
---namespace test \
---set redis.enabled=true \
-podinfo/podinfo
+make build
+make run
+# Open http://localhost:9898
 ```
 
-Install from ghcr.io:
+Run tests:
 
 ```bash
-helm upgrade --install --wait podinfo --namespace default \
-oci://ghcr.io/stefanprodan/charts/podinfo
+make test
 ```
 
-#### Kustomize
+Build container image:
 
 ```bash
-kubectl apply -k github.com/stefanprodan/podinfo//kustomize
+make build-container
 ```
-
-#### Docker
-
-```bash
-docker run -dp 9898:9898 stefanprodan/podinfo
-```
-
-### Continuous Delivery
-
-In order to install podinfo on a Kubernetes cluster and keep it up to date with the latest
-release in an automated manner, you can use [Flux](https://fluxcd.io).
-
-Install the Flux CLI on MacOS and Linux using Homebrew:
-
-```sh
-brew install fluxcd/tap/flux
-```
-
-Install the Flux controllers needed for Helm operations:
-
-```sh
-flux install \
---namespace=flux-system \
---network-policy=false \
---components=source-controller,helm-controller
-```
-
-Add podinfo's Helm repository to your cluster and
-configure Flux to check for new chart releases every ten minutes:
-
-```sh
-flux create source helm podinfo \
---namespace=default \
---url=https://stefanprodan.github.io/podinfo \
---interval=10m
-```
-
-Create a `podinfo-values.yaml` file locally:
-
-```sh
-cat > podinfo-values.yaml <<EOL
-replicaCount: 2
-resources:
-  limits:
-    memory: 256Mi
-  requests:
-    cpu: 100m
-    memory: 64Mi
-EOL
-```
-
-Create a Helm release for deploying podinfo in the default namespace:
-
-```sh
-flux create helmrelease podinfo \
---namespace=default \
---source=HelmRepository/podinfo \
---release-name=podinfo \
---chart=podinfo \
---chart-version=">5.0.0" \
---values=podinfo-values.yaml
-```
-
-Based on the above definition, Flux will upgrade the release automatically
-when a new version of podinfo is released. If the upgrade fails, Flux
-can [rollback](https://toolkit.fluxcd.io/components/helm/helmreleases/#configuring-failure-remediation)
-to the previous working version.
-
-You can check what version is currently deployed with:
-
-```sh
-flux get helmreleases -n default
-```
-
-To delete podinfo's Helm repository and release from your cluster run:
-
-```sh
-flux -n default delete source helm podinfo
-flux -n default delete helmrelease podinfo
-```
-
-If you wish to manage the lifecycle of your applications in a **GitOps** manner, check out
-this [workflow example](https://github.com/fluxcd/flux2-kustomize-helm-example)
-for multi-env deployments with Flux, Kustomize and Helm.

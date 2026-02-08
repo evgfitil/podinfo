@@ -97,17 +97,17 @@ Replace bare-bones `kustomize/` with a complete `manifests/` directory containin
 
 Rewrite README for the student exercise context. Include application reference information so students know what to parameterize in their Helm chart.
 
-- [ ] describe the exercise purpose and goal
-- [ ] document application details:
+- [x] describe the exercise purpose and goal
+- [x] document application details:
   - ports: HTTP 9898, gRPC 9999, metrics 9797, HTTPS 9899
   - health probes: `/healthz` (liveness), `/readyz` (readiness)
   - key env vars: `PODINFO_` prefix, important ones (PORT, LEVEL, CACHE_SERVER, UI_COLOR, UI_MESSAGE, BACKEND_URL)
   - volumes: `/data` (emptyDir), `/data/cert` (TLS, optional)
   - container user: `app` (non-root)
-- [ ] document available Makefile targets (only the kept ones)
-- [ ] explain `manifests/` directory — plain K8s resources as the basis for Helm chart
-- [ ] note that `charts/podinfo/` is a reference Helm chart (for mentors)
-- [ ] remove all references to deleted components
+- [x] document available Makefile targets (only the kept ones)
+- [x] explain `manifests/` directory — plain K8s resources as the basis for Helm chart
+- [x] note that `charts/podinfo/` is a reference Helm chart (for mentors)
+- [x] remove all references to deleted components
 
 ### Task 6: Verify build and unit tests
 
