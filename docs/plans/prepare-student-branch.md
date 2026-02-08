@@ -74,9 +74,9 @@ The result is a self-contained repository branch where:
 
 Remove targets that reference deleted components or are irrelevant for the exercise.
 
-- [ ] remove targets: `build-xx`, `build-base`, `push-base`, `test-container`, `push-container`, `version-set`, `release`, `swagger`, `timoni-build`
-- [ ] keep targets: `run`, `test`, `build`, `tidy`, `vet`, `fmt`, `build-charts`, `build-container`
-- [ ] verify: `make test` passes
+- [x] remove targets: `build-xx`, `build-base`, `push-base`, `test-container`, `push-container`, `version-set`, `release`, `swagger`, `timoni-build`
+- [x] keep targets: `run`, `test`, `build`, `tidy`, `vet`, `fmt`, `build-charts`, `build-container`
+- [x] verify: `make test` passes
 
 ### Task 4: Generate full set of Kubernetes manifests
 
