@@ -7,7 +7,7 @@ Prepare a clean branch from the podinfo fork for a Kubernetes training exercise.
 The result is a self-contained repository branch where:
 
 - the application builds and runs locally and in a container;
-- plain Kubernetes manifests cover all resources students must templatize into a Helm chart (Deployment, Service, HPA, Ingress, ServiceAccount, PDB);
+- plain Kubernetes manifests cover all resources students must templatize into a Helm chart (Deployment, Service, HPA, Ingress, ServiceAccount, PDB, Redis ConfigMap/Deployment/Service);
 - README documents application ports, probes, env vars and other details needed for chart parameterization;
 - mentors can reference the production Helm chart in `charts/podinfo/` for grading/guidance;
 - everything unrelated to the exercise is removed to reduce noise.
@@ -37,7 +37,7 @@ The result is a self-contained repository branch where:
 - `otel/`, `test/` — dev/CI tooling
 - `.goreleaser.yml`, `cloudbuild.yaml` — release automation
 
-**Gap analysis:** kustomize/ contains only 3 resource types. The Helm chart has 7+ (Deployment, Service, HPA, Ingress, ServiceAccount, PDB, ServiceMonitor, Certificate, Redis subchart, hooks). Students need plain YAML for at least the core 6 resource types to build a full chart.
+**Gap analysis:** kustomize/ contains only 3 resource types. The Helm chart has 7+ (Deployment, Service, HPA, Ingress, ServiceAccount, PDB, ServiceMonitor, Certificate, Redis subchart, hooks). Students need plain YAML for the core 6 resource types plus Redis (ConfigMap, Deployment, Service) to build a full chart with an optional dependency.
 
 ## Development Approach
 
@@ -90,6 +90,12 @@ Replace bare-bones `kustomize/` with a complete `manifests/` directory containin
   - `ingress.yaml` — basic Ingress resource
   - `serviceaccount.yaml` — ServiceAccount
   - `pdb.yaml` — PodDisruptionBudget
+- [x] add Redis manifests as plain YAML (based on `charts/podinfo/templates/redis/`):
+  - `redis-config.yaml` — ConfigMap with `redis.conf` (maxmemory 64mb, allkeys-lru, no persistence)
+  - `redis-deployment.yaml` — Deployment with `redis:8.4.0` image, port 6379, liveness (TCP) and readiness (`redis-cli ping`) probes, resource limits, volumes for data and config
+  - `redis-service.yaml` — ClusterIP Service on port 6379
+- [x] update `manifests/deployment.yaml` — add `--cache-server=tcp://podinfo-redis:6379` to podinfo container command args
+- [x] update `manifests/hpa.yaml` — set `minReplicas: 1`, `maxReplicas: 4` (reduce resource pressure in test/dev clusters)
 - [x] remove `kustomize/` directory (replaced by `manifests/`)
 - [x] verify manifests are valid: `kubectl apply --dry-run=client -f manifests/`
 
@@ -106,21 +112,22 @@ Rewrite README for the student exercise context. Include application reference i
   - container user: `app` (non-root)
 - [x] document available Makefile targets (only the kept ones)
 - [x] explain `manifests/` directory — plain K8s resources as the basis for Helm chart
+- [ ] document Redis dependency: ConfigMap, Deployment, Service in `manifests/`, `--cache-server` flag usage
 - [x] note that `charts/podinfo/` is a reference Helm chart (for mentors)
 - [x] remove all references to deleted components
 
 ### Task 6: Verify build and unit tests
 
-- [x] verify `make test` passes (unit tests)
-- [x] verify `make build` succeeds (binary builds)
-- [x] verify `make build-container` succeeds (Docker image)
-- [x] verify `make run` starts the application and responds on `localhost:9898/healthz`
-- [x] verify `make build-charts` works (Helm lint on reference chart)
-- [x] verify no broken references to deleted files/directories
+- [ ] verify `make test` passes (unit tests)
+- [ ] verify `make build` succeeds (binary builds)
+- [ ] verify `make build-container` succeeds (Docker image)
+- [ ] verify `make run` starts the application and responds on `localhost:9898/healthz`
+- [ ] verify `make build-charts` works (Helm lint on reference chart)
+- [ ] verify no broken references to deleted files/directories
 
 ### Task 7: Integration test — Helm vs manifests deployment comparison
 
-Deploy the application into two namespaces (Helm install vs plain manifests), compare that the application behaves identically.
+Deploy the application into two namespaces (Helm install vs plain manifests), compare that the application behaves identically. Both deployments include Redis as a cache backend.
 
 **Prerequisites:** Kind, Helm, kubectl, Docker
 
@@ -134,21 +141,21 @@ All kubectl and helm commands below assume this env var is set.
 
 **Setup:**
 
-- [x] set `KUBECONFIG=$(pwd)/kubeconfig`
-- [x] create Kind cluster: `kind create cluster --name podinfo-test --kubeconfig $(pwd)/kubeconfig`
-- [x] install metrics-server (required for HPA):
+- [ ] set `KUBECONFIG=$(pwd)/kubeconfig`
+- [ ] create Kind cluster: `kind create cluster --name podinfo-test --kubeconfig $(pwd)/kubeconfig`
+- [ ] install metrics-server (required for HPA):
   ```
   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
   kubectl patch deployment metrics-server -n kube-system \
     --type=json -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
   kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=90s
   ```
-- [x] build Docker image: `docker build -t podinfo:test .`
-- [x] load image into Kind: `kind load docker-image podinfo:test --name podinfo-test`
+- [ ] build Docker image: `docker build -t podinfo:test .`
+- [ ] load image into Kind: `kind load docker-image podinfo:test --name podinfo-test`
 
 **Namespace `test-helm` — deploy via Helm:**
 
-- [x] install with matching config:
+- [ ] install with matching config (Redis enabled):
   ```
   helm install podinfo charts/podinfo/ \
     --namespace test-helm --create-namespace \
@@ -158,14 +165,23 @@ All kubectl and helm commands below assume this env var is set.
     --set serviceAccount.enabled=true \
     --set ingress.enabled=true \
     --set hpa.enabled=true \
-    --set pdb.minAvailable=1
+    --set pdb.minAvailable=1 \
+    --set redis.enabled=true
   ```
-- [x] wait for pods ready: `kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=podinfo -n test-helm --timeout=60s`
+- [ ] wait for Redis ready: `kubectl wait --for=condition=ready pod -l app=podinfo-redis -n test-helm --timeout=60s`
+- [ ] wait for podinfo ready: `kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=podinfo -n test-helm --timeout=60s`
 
 **Namespace `test-manifests` — deploy via plain manifests:**
 
-- [x] create namespace: `kubectl create namespace test-manifests`
-- [x] apply all manifests with image override (manifests have hardcoded image, replace for test):
+- [ ] create namespace: `kubectl create namespace test-manifests`
+- [ ] apply Redis manifests first:
+  ```
+  kubectl apply -f manifests/redis-config.yaml -n test-manifests
+  kubectl apply -f manifests/redis-deployment.yaml -n test-manifests
+  kubectl apply -f manifests/redis-service.yaml -n test-manifests
+  ```
+- [ ] wait for Redis ready: `kubectl wait --for=condition=ready pod -l app=podinfo-redis -n test-manifests --timeout=60s`
+- [ ] apply remaining manifests with image override:
   ```
   sed 's|ghcr.io/stefanprodan/podinfo:.*|podinfo:test|' manifests/deployment.yaml | kubectl apply -n test-manifests -f -
   kubectl apply -f manifests/service.yaml -n test-manifests
@@ -174,31 +190,34 @@ All kubectl and helm commands below assume this env var is set.
   kubectl apply -f manifests/pdb.yaml -n test-manifests
   kubectl apply -f manifests/hpa.yaml -n test-manifests
   ```
-- [x] wait for pods ready: `kubectl wait --for=condition=ready pod -l app=podinfo -n test-manifests --timeout=60s`
+- [ ] wait for podinfo ready: `kubectl wait --for=condition=ready pod -l app=podinfo -n test-manifests --timeout=60s`
 
 **Compare application behavior:**
 
-- [x] port-forward both:
+- [ ] port-forward both:
   ```
   kubectl port-forward -n test-helm svc/podinfo 9801:9898 &
   kubectl port-forward -n test-manifests svc/podinfo 9802:9898 &
   ```
-- [x] compare `/version` — must return same version in both
-- [x] compare `/healthz` — both return HTTP 200
-- [x] compare `/readyz` — both return HTTP 200
-- [x] compare `/` — both return JSON with same structure (ignore `hostname` field, it differs per pod)
-- [x] compare Service ports — both expose http (9898) and grpc (9999)
+- [ ] compare `/version` — must return same version in both
+- [ ] compare `/healthz` — both return HTTP 200
+- [ ] compare `/readyz` — both return HTTP 200
+- [ ] compare `/` — both return JSON with same structure (ignore `hostname` field, it differs per pod)
+- [ ] compare Service ports — both expose http (9898) and grpc (9999)
 
 **Compare Kubernetes resources:**
 
-- [x] compare HPA in both namespaces — same MINPODS, MAXPODS, TARGETS:
+- [ ] compare HPA in both namespaces — same MINPODS, MAXPODS, TARGETS:
   ```
   kubectl get hpa -n test-helm
   kubectl get hpa -n test-manifests
   ```
-- [x] verify PDB exists in both: `kubectl get pdb -n test-helm && kubectl get pdb -n test-manifests`
-- [x] verify ServiceAccount exists in both: `kubectl get sa -n test-helm && kubectl get sa -n test-manifests`
-- [x] verify Ingress exists in both: `kubectl get ingress -n test-helm && kubectl get ingress -n test-manifests`
+- [ ] verify PDB exists in both: `kubectl get pdb -n test-helm && kubectl get pdb -n test-manifests`
+- [ ] verify ServiceAccount exists in both: `kubectl get sa -n test-helm && kubectl get sa -n test-manifests`
+- [ ] verify Ingress exists in both: `kubectl get ingress -n test-helm && kubectl get ingress -n test-manifests`
+- [ ] verify Redis is running in both: `kubectl get pods -l app=podinfo-redis -n test-helm && kubectl get pods -l app=podinfo-redis -n test-manifests`
+- [ ] verify Redis Service exists in both: `kubectl get svc podinfo-redis -n test-helm && kubectl get svc podinfo-redis -n test-manifests`
+- [ ] verify Redis ConfigMap exists in both: `kubectl get configmap podinfo-redis -n test-helm && kubectl get configmap podinfo-redis -n test-manifests`
 
 ### Task 8: Commit all changes
 
@@ -231,12 +250,15 @@ kubectl describe deployment -n test-helm
 kubectl describe deployment -n test-manifests
 kubectl get hpa,pdb,ingress,sa -n test-helm
 kubectl get hpa,pdb,ingress,sa -n test-manifests
+kubectl get pods,svc,configmap -l app=podinfo-redis -n test-helm
+kubectl get pods,svc,configmap -l app=podinfo-redis -n test-manifests
 ```
 
 Checklist for the reviewer:
 
 - [ ] verify both apps respond identically on `/`, `/version`, `/healthz`, `/readyz`
 - [ ] inspect Kubernetes resources in both namespaces (Deployment, Service, HPA, PDB, Ingress, ServiceAccount)
+- [ ] verify Redis is running and accessible in both namespaces (ConfigMap, Deployment, Service)
 - [ ] review the committed branch for completeness and cleanliness
 - [ ] cleanup when done: `kind delete cluster --name podinfo-test`
 
@@ -258,12 +280,15 @@ podinfo/
 ├── charts/
 │   └── podinfo/             # REFERENCE Helm chart (mentors only)
 ├── manifests/               # plain K8s manifests for students
-│   ├── deployment.yaml      # Deployment with probes, resources, security
+│   ├── deployment.yaml      # Deployment with probes, resources, cache-server
 │   ├── service.yaml         # Service with named ports
 │   ├── hpa.yaml             # HorizontalPodAutoscaler
 │   ├── ingress.yaml         # Ingress
 │   ├── serviceaccount.yaml  # ServiceAccount
-│   └── pdb.yaml             # PodDisruptionBudget
+│   ├── pdb.yaml             # PodDisruptionBudget
+│   ├── redis-config.yaml    # Redis ConfigMap (redis.conf)
+│   ├── redis-deployment.yaml # Redis Deployment
+│   └── redis-service.yaml   # Redis Service
 ├── Dockerfile
 ├── Makefile                 # simplified
 ├── README.md                # exercise-oriented with app reference info

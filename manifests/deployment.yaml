@@ -37,6 +37,7 @@ spec:
             - --level=info
             - --random-delay=false
             - --random-error=false
+            - --cache-server=tcp://podinfo-redis:6379
           env:
             - name: PODINFO_UI_COLOR
               value: "#34577c"
