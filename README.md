@@ -107,12 +107,33 @@ The `manifests/` directory contains plain YAML files for all resources you need 
 | `ingress.yaml` | Ingress | host, paths, TLS, enable/disable |
 | `serviceaccount.yaml` | ServiceAccount | name, annotations, enable/disable |
 | `pdb.yaml` | PodDisruptionBudget | minAvailable/maxUnavailable, enable/disable |
+| `redis-config.yaml` | ConfigMap | Redis configuration (maxmemory, eviction policy) |
+| `redis-deployment.yaml` | Deployment | image, resources, probes, enable/disable |
+| `redis-service.yaml` | Service | port, selector labels |
 
 Apply manifests directly to verify they work:
 
 ```bash
 kubectl apply -f manifests/
 ```
+
+## Redis Dependency
+
+Podinfo uses Redis as an optional cache backend. The `manifests/` directory includes three Redis resources:
+
+- `redis-config.yaml` -- ConfigMap with `redis.conf` (64 MB memory limit, allkeys-lru eviction, persistence disabled)
+- `redis-deployment.yaml` -- single-replica Deployment running `redis:8.4.0` with liveness (TCP) and readiness (`redis-cli ping`) probes
+- `redis-service.yaml` -- ClusterIP Service exposing port 6379
+
+The podinfo Deployment connects to Redis via the `--cache-server` flag:
+
+```text
+--cache-server=tcp://podinfo-redis:6379
+```
+
+This flag can also be set through the `PODINFO_CACHE_SERVER` environment variable. When Redis is available, the `/cache/{key}` API endpoints (GET, POST, DELETE) become functional.
+
+When creating your Helm chart, consider making Redis an optional dependency that can be enabled or disabled through chart values.
 
 ## Reference Helm Chart
 

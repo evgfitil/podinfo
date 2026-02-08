@@ -112,7 +112,7 @@ Rewrite README for the student exercise context. Include application reference i
   - container user: `app` (non-root)
 - [x] document available Makefile targets (only the kept ones)
 - [x] explain `manifests/` directory — plain K8s resources as the basis for Helm chart
-- [ ] document Redis dependency: ConfigMap, Deployment, Service in `manifests/`, `--cache-server` flag usage
+- [x] document Redis dependency: ConfigMap, Deployment, Service in `manifests/`, `--cache-server` flag usage
 - [x] note that `charts/podinfo/` is a reference Helm chart (for mentors)
 - [x] remove all references to deleted components
 
