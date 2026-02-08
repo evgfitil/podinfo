@@ -6,6 +6,10 @@ Podinfo is used by CNCF projects like [Flux](https://github.com/fluxcd/flux2) an
 
 Container image: `ghcr.io/stefanprodan/podinfo:6.10.1`
 
+### Web UI
+
+![podinfo-ui](https://raw.githubusercontent.com/stefanprodan/podinfo/gh-pages/screens/podinfo-ui-v3.png)
+
 ## Application Reference
 
 ### Ports
