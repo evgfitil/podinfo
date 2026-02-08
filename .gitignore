@@ -26,3 +26,6 @@ CLAUDE.md
 
 # ralphex progress logs
 progress*.txt
+
+# local kubeconfig for integration tests
+kubeconfig

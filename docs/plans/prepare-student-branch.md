@@ -134,21 +134,21 @@ All kubectl and helm commands below assume this env var is set.
 
 **Setup:**
 
-- [ ] set `KUBECONFIG=$(pwd)/kubeconfig`
-- [ ] create Kind cluster: `kind create cluster --name podinfo-test --kubeconfig $(pwd)/kubeconfig`
-- [ ] install metrics-server (required for HPA):
+- [x] set `KUBECONFIG=$(pwd)/kubeconfig`
+- [x] create Kind cluster: `kind create cluster --name podinfo-test --kubeconfig $(pwd)/kubeconfig`
+- [x] install metrics-server (required for HPA):
   ```
   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
   kubectl patch deployment metrics-server -n kube-system \
     --type=json -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
   kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=90s
   ```
-- [ ] build Docker image: `docker build -t podinfo:test .`
-- [ ] load image into Kind: `kind load docker-image podinfo:test --name podinfo-test`
+- [x] build Docker image: `docker build -t podinfo:test .`
+- [x] load image into Kind: `kind load docker-image podinfo:test --name podinfo-test`
 
 **Namespace `test-helm` — deploy via Helm:**
 
-- [ ] install with matching config:
+- [x] install with matching config:
   ```
   helm install podinfo charts/podinfo/ \
     --namespace test-helm --create-namespace \
@@ -160,12 +160,12 @@ All kubectl and helm commands below assume this env var is set.
     --set hpa.enabled=true \
     --set pdb.minAvailable=1
   ```
-- [ ] wait for pods ready: `kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=podinfo -n test-helm --timeout=60s`
+- [x] wait for pods ready: `kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=podinfo -n test-helm --timeout=60s`
 
 **Namespace `test-manifests` — deploy via plain manifests:**
 
-- [ ] create namespace: `kubectl create namespace test-manifests`
-- [ ] apply all manifests with image override (manifests have hardcoded image, replace for test):
+- [x] create namespace: `kubectl create namespace test-manifests`
+- [x] apply all manifests with image override (manifests have hardcoded image, replace for test):
   ```
   sed 's|ghcr.io/stefanprodan/podinfo:.*|podinfo:test|' manifests/deployment.yaml | kubectl apply -n test-manifests -f -
   kubectl apply -f manifests/service.yaml -n test-manifests
@@ -174,31 +174,31 @@ All kubectl and helm commands below assume this env var is set.
   kubectl apply -f manifests/pdb.yaml -n test-manifests
   kubectl apply -f manifests/hpa.yaml -n test-manifests
   ```
-- [ ] wait for pods ready: `kubectl wait --for=condition=ready pod -l app=podinfo -n test-manifests --timeout=60s`
+- [x] wait for pods ready: `kubectl wait --for=condition=ready pod -l app=podinfo -n test-manifests --timeout=60s`
 
 **Compare application behavior:**
 
-- [ ] port-forward both:
+- [x] port-forward both:
   ```
   kubectl port-forward -n test-helm svc/podinfo 9801:9898 &
   kubectl port-forward -n test-manifests svc/podinfo 9802:9898 &
   ```
-- [ ] compare `/version` — must return same version in both
-- [ ] compare `/healthz` — both return HTTP 200
-- [ ] compare `/readyz` — both return HTTP 200
-- [ ] compare `/` — both return JSON with same structure (ignore `hostname` field, it differs per pod)
-- [ ] compare Service ports — both expose http (9898) and grpc (9999)
+- [x] compare `/version` — must return same version in both
+- [x] compare `/healthz` — both return HTTP 200
+- [x] compare `/readyz` — both return HTTP 200
+- [x] compare `/` — both return JSON with same structure (ignore `hostname` field, it differs per pod)
+- [x] compare Service ports — both expose http (9898) and grpc (9999)
 
 **Compare Kubernetes resources:**
 
-- [ ] compare HPA in both namespaces — same MINPODS, MAXPODS, TARGETS:
+- [x] compare HPA in both namespaces — same MINPODS, MAXPODS, TARGETS:
   ```
   kubectl get hpa -n test-helm
   kubectl get hpa -n test-manifests
   ```
-- [ ] verify PDB exists in both: `kubectl get pdb -n test-helm && kubectl get pdb -n test-manifests`
-- [ ] verify ServiceAccount exists in both: `kubectl get sa -n test-helm && kubectl get sa -n test-manifests`
-- [ ] verify Ingress exists in both: `kubectl get ingress -n test-helm && kubectl get ingress -n test-manifests`
+- [x] verify PDB exists in both: `kubectl get pdb -n test-helm && kubectl get pdb -n test-manifests`
+- [x] verify ServiceAccount exists in both: `kubectl get sa -n test-helm && kubectl get sa -n test-manifests`
+- [x] verify Ingress exists in both: `kubectl get ingress -n test-helm && kubectl get ingress -n test-manifests`
 
 ### Task 8: Commit all changes
 
