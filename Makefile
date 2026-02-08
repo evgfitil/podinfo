@@ -17,7 +17,7 @@ run:
 
 .PHONY: test
 test: tidy fmt vet
-	go test ./... -coverprofile cover.out
+	go test ./...
 
 build:
 	GIT_COMMIT=$$(git rev-list -1 HEAD) && CGO_ENABLED=0 go build  -ldflags "-s -w -X github.com/stefanprodan/podinfo/pkg/version.REVISION=$(GIT_COMMIT)" -a -o ./bin/podinfo ./cmd/podinfo/*

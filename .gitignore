@@ -20,12 +20,7 @@ build/
 gcloud/
 dist/
 bin/
-cue/cue.mod/gen/
-cue/go.mod
-cue/go.sum
-
-.notation/podinfo.csr
-.notation/podinfo.key
+*.tgz
 docs/
 CLAUDE.md
 
