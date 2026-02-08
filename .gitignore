@@ -26,3 +26,5 @@ cue/go.sum
 
 .notation/podinfo.csr
 .notation/podinfo.key
+docs/
+CLAUDE.md
